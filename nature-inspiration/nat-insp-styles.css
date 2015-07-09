@@ -1,0 +1,29 @@
+
+
+#nature_box {
+    padding: 15px;
+    border-radius: 5px;
+    border: 2px solid #ddd;
+    background-color: #fff;
+    display: none;
+    position: fixed;
+    top: 7%;
+    left: 35%;
+    z-index: 500;
+    max-height: 95%;
+}
+
+#nature_box .image_holder {
+    padding-bottom: 10px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#nature_box p {
+    float: left;
+}
+
+#nature_box .close {
+    float: right;
+}
