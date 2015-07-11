@@ -96,7 +96,6 @@ class insp_widget extends WP_Widget {
     public function create_data_options( $instance ) {
         $synonymsAsString = file_get_contents( plugins_url() . '/nature-inspiration/synonyms.txt' );
         $synonymMap = json_decode( $synonymsAsString, true );
-        error_log("json result: " . $synonymMap['animals'][0]);
         $checkedItems = "";
         foreach ( $instance as $item => $val ) {
             if ( $val == '1' ) {
