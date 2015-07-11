@@ -1,12 +1,12 @@
 <?php
   /*
   Plugin Name: Nature Inspiration
-  Plugin URI: http://example.com/
+  Plugin URI: http://github.com/Shanarelle/nature-inspiration
   Description: Accepts a set of likes and searches 500px for an image in some
     of those likes - returning a hopefully inspirational picture
   Version: 0.0.1
   Author: Clare Reid
-  Author URI: http://example.com/
+  Author URI: https://github.com/Shanarelle
   */
 
   /**
@@ -30,143 +30,6 @@
    * GNU General Public License for more details.
    * **********************************************************************
    */
-
-   class WP_Nature_Inspiration{
-
-  // Constructor
-    function __construct() {
-
-        // Tracks new sections for whitelist_custom_options_page()
-        $this->page_sections = array();
-        // Must run after wp's `option_update_filter()`, so priority > 10
-        add_action( 'whitelist_options', array( $this, 'whitelist_custom_options_page' ),11 );
-
-        // create the settings page content
-        add_action('admin_init', array( $this, 'plugin_admin_init' ) );
-        // register to menu
-        add_action( 'admin_menu', array( $this, 'wpni_add_menu' ));
-        register_activation_hook( 'nature-inspiration.php', array( $this, 'wpni_install' ) );
-        register_deactivation_hook( 'nature-inspiration.php', array( $this, 'wpni_uninstall' ) );
-
-    }
-
-    /*
-      * Actions perform at loading of admin menu
-      */
-    function wpni_add_menu() {
-
-        add_options_page( 'Nature Inspiration', 'Inspire Settings', 'create_users', 'nat_insp', array( $this, 'wpni_settings_page' ) );
-    }
-
-    function plugin_admin_init(){
-      register_setting( 'nat_insp_options', 'nat_insp', array( $this, 'plugin_options_validate' ) );
-      $this->add_settings_section('nat_insp_main', 'Inspiration Settings', array( $this, 'plugin_section_text' ), 'nat_insp');
-      add_settings_field('plugin_text_checkbox', 'Plugin Checkbox Input', array( $this, 'plugin_setting_checkbox' ), 'nat_insp', 'nat_insp_main');
-    }
-
-    /*
-    * settings description paragraph
-    */
-    function plugin_section_text() {
-        error_log( "displaying section text" );
-        echo "<p>Main description of this section here.</p>";
-    }
-
-    /*
-    * rendering logic for specific setting - not sure if can pass in parameters
-    */
-    function plugin_setting_checkbox() {
-        $options = get_option('nat_insp_options');
-        echo "<input id='plugin_text_checkbox' name='nat_insp_options[text_string]' size='40' type='text' value='{$options['text_string']}' />";
-    }
-
-    /*
-    * will need to actually validate in due course - probably
-    */
-    function plugin_options_validate($input) {
-        error_log( "input: " + $input );
-        return $input;
-    }
-
-    /*
-    * will output the settings form where you can select your likes
-    */
-    function wpni_settings_page() {
-        ?>
-        <div class="wrap">
-            <h2>Natural Inspiration</h2>
-            <form method="post" action="options.php">
-              <?php
-                settings_fields( 'nat_insp' );
-                do_settings_sections( 'nat_insp' );
-                submit_button();
-              ?>
-              <!-- Trees <input type="checkbox" name="option1" value="Trees"><br>
-              Lakes <input type="checkbox" name="option1" value="Lakes"><br>
-              Rivers <input type="checkbox" name="option1" value="Rivers"><br>
-              Waterfalls <input type="checkbox" name="option1" value="Waterfalls"><br>
-              Jungles <input type="checkbox" name="option1" value="Jungles"><br>
-              Deserts <input type="checkbox" name="option1" value="Deserts"><br>
-              Swamps <input type="checkbox" name="option1" value="Swamps"><br>
-              Mountains <input type="checkbox" name="option1" value="Mountains"><br>
-              Fog <input type="checkbox" name="option1" value="Fog"><br> -->
-            </form>
-        </div>
-        <?php
-    }
-
-    /*
-     * Actions perform on activation of plugin
-     */
-    function wpni_install() {
-      $default_options = array(
-        'text_string' => 'hiya'
-      );
-      update_options('nat_insp_options', $default_options);
-
-    }
-
-    /*
-     * Actions perform on de-activation of plugin
-     */
-    function wpni_uninstall() {
-
-
-
-    }
-
-    // White-lists options on custom pages.
-    // Workaround for second issue: http://j.mp/Pk3UCF
-    public function whitelist_custom_options_page( $whitelist_options ){
-        // Custom options are mapped by section id; Re-map by page slug.
-        foreach($this->page_sections as $page => $sections ){
-            $whitelist_options[$page] = array();
-            foreach( $sections as $section )
-                if( !empty( $whitelist_options[$section] ) )
-                    foreach( $whitelist_options[$section] as $option )
-                        $whitelist_options[$page][] = $option;
-                }
-        return $whitelist_options;
-    }
-
-    // Wrapper for wp's `add_settings_section()` that tracks custom sections
-    private function add_settings_section( $id, $title, $cb, $page ){
-        add_settings_section( $id, $title, $cb, $page );
-        if( $id != $page ){
-            if( !isset($this->page_sections[$page]))
-                $this->page_sections[$page] = array();
-            $this->page_sections[$page][$id] = $id;
-        }
-    }
-
-}
-
-new WP_Nature_Inspiration();
-
-?>
-
-<!-- widget widget widget -->
-<?php
 
 // Creating the widget
 class insp_widget extends WP_Widget {
@@ -195,41 +58,64 @@ class insp_widget extends WP_Widget {
         if ( ! empty( $title ) )
         echo $args['before_title'] . $title . $args['after_title'];
 
-        // This is where you run the code and display the output
-        $checkedItems = "";
-        foreach ( $instance as $item => $val) {
-            if ( $val == '1' ) {
-                $checkedItems = $checkedItems . $item . ',';
-            }
-        }
-        $this->display_widget( $checkedItems );
-
+        $checkedItems = $this->create_data_options( $instance );
+        $this->display_widget( $checkedItems, $instance['api_key'] );
         $this->create_popup();
 
         echo $args['after_widget'];
     }
 
-    public function display_widget( $checkedItems ) {
+    /* display the actual widget contents */
+    public function display_widget( $checkedItems, $key ) {
         echo __( 'Click the button for a dose of inspiration', 'wpb_widget_domain' );
         ?>
         <br>
         <!-- figure out what styling to use here - bootstrap seemingly not present -->
-        <input type="submit" name="search500" id="widget-insp_widget" class="button button-primary widget-control-save right" value="Search" data-options=<?php echo $checkedItems ?> >
+        <input type="submit" name="search500" id="widget-insp_widget" class="button button-primary widget-control-save right" value="Search" data-options=<?php echo $checkedItems ?> data-key=<?php echo $key ?>>
         <?php
     }
 
+    /* prints the html for the popup box - hidden by default */
     public function create_popup() {
         ?>
         <div id="nature_box">
-            <img class="image_holder" src="">
-            <p class="description"></p>
-            <input type="button" class="button close" value="Close">
+            <div>
+                <p class="attribution"></p>
+                <img class="image_holder" src="">
+                <p class="description"></p>
+                <input type="button" class="button close" value="Close">
+            </div>
         </div>
         <?php
     }
 
-    // Widget Backend
+    /*  Loads the file of synonyms and figures out which ones to add based on which checkboxes
+    *   have been selected in the admin screen. Then formats them as a comma separated list
+    *   with a trailing comma.
+    */
+    public function create_data_options( $instance ) {
+        $synonymsAsString = file_get_contents( plugins_url() . '/nature-inspiration/synonyms.txt' );
+        $synonymMap = json_decode( $synonymsAsString, true );
+        error_log("json result: " . $synonymMap['animals'][0]);
+        $checkedItems = "";
+        foreach ( $instance as $item => $val ) {
+            if ( $val == '1' ) {
+                // Add overall tag to list
+                $checkedItems = $checkedItems . $item . ',';
+                // Add each synonym to the list
+                foreach ( $synonymMap[$item] as $index => $value) {
+                    $checkedItems = $checkedItems . $value . ',';
+                }
+            }
+        }
+        return $checkedItems;
+    }
+
+    /*  Widget admin section. Allows you to set a title and select a set of checkbox
+    *   based preferences.
+    */
     public function form( $instance ) {
+        //sort out which variables have been set - default checkboxes to unchecked
         if ( isset( $instance[ 'title' ] ) ) {
             $title = $instance[ 'title' ];
         }
@@ -240,35 +126,59 @@ class insp_widget extends WP_Widget {
             $people = $instance[ 'people' ];
         }
         else {
-            $people = __( 'false', 'wpb_widget_domain' );
+            $people = '0';
+        }
+        if ( isset( $instance[ 'cities' ] ) ) {
+            $cities = $instance[ 'cities' ];
+        }
+        else {
+            $cities = '0';
         }
         if ( isset( $instance[ 'animals' ] ) ) {
             $animals = $instance[ 'animals' ];
         }
         else {
-            $animals = __( 'false', 'wpb_widget_domain' );
+            $animals = '0';
+        }
+        if ( isset( $instance[ 'api_key' ] ) ) {
+            $api_key = $instance[ 'api_key' ];
+        }
+        else {
+            $api_key = '';
         }
         // Widget admin form
         ?>
         <p>
             <label for="<?php echo $this->get_field_id( 'title' ); ?>"><?php _e( 'Title:' ); ?></label>
             <input class="widefat" id="<?php echo $this->get_field_id( 'title' ); ?>" name="<?php echo $this->get_field_name( 'title' ); ?>" type="text" value="<?php echo esc_attr( $title ); ?>" />
+            <br>
+            <br>
             <!-- checkboxes -->
             <input id="<?php echo $this->get_field_id('people'); ?>" name="<?php echo $this->get_field_name('people'); ?>" type="checkbox" value="1" <?php checked( '1', $people ); ?> />
             <label for="<?php echo $this->get_field_id('people'); ?>"><?php _e('People', 'wpb_widget_domain'); ?></label>
 
+            <input id="<?php echo $this->get_field_id('cities'); ?>" name="<?php echo $this->get_field_name('cities'); ?>" type="checkbox" value="1" <?php checked( '1', $cities ); ?> />
+            <label for="<?php echo $this->get_field_id('cities'); ?>"><?php _e('Cities', 'wpb_widget_domain'); ?></label>
+
             <input id="<?php echo $this->get_field_id('animals'); ?>" name="<?php echo $this->get_field_name('animals'); ?>" type="checkbox" value="1" <?php checked( '1', $animals ); ?> />
             <label for="<?php echo $this->get_field_id('animals'); ?>"><?php _e('Animals', 'wpb_widget_domain'); ?></label>
+            <br>
+            <br>
+            <!-- input for 500px api key -->
+            <label for="<?php echo $this->get_field_id( 'api_key' ); ?>"><?php _e( '500px API key:' ); ?></label>
+            <input class="widefat" id="<?php echo $this->get_field_id( 'api_key' ); ?>" name="<?php echo $this->get_field_name( 'api_key' ); ?>" type="text" value="<?php echo esc_attr( $api_key ); ?>" />
         </p>
         <?php
     }
 
-    // Updating widget replacing old instances with new
+    /* Updating widget - replacing old instances with new */
     public function update( $new_instance, $old_instance ) {
         $instance = array(
             'title' => ( ! empty( $new_instance['title'] ) ) ? strip_tags( $new_instance['title'] ) : '',
             'people' => ( ! empty( $new_instance['people'] ) ) ? strip_tags( $new_instance['people'] ) : '',
-            'animals' => ( ! empty( $new_instance['animals'] ) ) ? strip_tags( $new_instance['animals'] ) : ''
+            'cities' => ( ! empty( $new_instance['cities'] ) ) ? strip_tags( $new_instance['cities'] ) : '',
+            'animals' => ( ! empty( $new_instance['animals'] ) ) ? strip_tags( $new_instance['animals'] ) : '',
+            'api_key' => ( ! empty( $new_instance['api_key'] ) ) ? strip_tags( $new_instance['api_key'] ) : '',
         );
 
         return $instance;
@@ -281,6 +191,5 @@ function wpb_load_widget() {
 }
 
 add_action( 'widgets_init', 'wpb_load_widget' );
-
 
 ?>

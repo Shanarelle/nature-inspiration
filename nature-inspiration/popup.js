@@ -4,14 +4,17 @@ var searchEndPoint = 'photos/search';
 jQuery('#widget-insp_widget').on('click', function() {
     //get parameters from element attributes
     var attributes = this.getAttribute( "data-options" );
+
     var parameters = attributes.split(",");
-    console.log(parameters);
+
+    //will sometimes return the last index, which will always be empty -
+    //so people will sometimes see things outside their preferences
+    var parameterIndexToUse = Math.floor(Math.random()*(parameters.length-1));
 
     //determine what to search
-    var fullUrl = baseUrl + searchEndPoint + '?consumer_key=dPDkJA7iy5mKFDswMGvdDaEwT02CD94E38D9rtRF';
-    fullUrl = fullUrl + '&tag=' + parameters[0];
+    var fullUrl = baseUrl + searchEndPoint + '?consumer_key=' + this.getAttribute( "data-key" );
+    fullUrl = fullUrl + '&tag=' + parameters[parameterIndexToUse];
     fullUrl = fullUrl + '&image_size=440'; //21
-    console.log(fullUrl);
     //actually do search and process result
     jQuery.get(fullUrl, function(data, status) {
         console.log("return data is: ");
@@ -29,20 +32,10 @@ function lightBoxPopup(photoDetails) {
     var popup = jQuery('#nature_box');
     popup.find('.description').text(desc);
     popup.find('.image_holder').attr("src", url);
+    popup.find('.attribution').text(" © " + photoDetails.user.fullname + " / 500px ");
     popup.show();
 }
 
 jQuery('#nature_box .close').on('click', function() {
     jQuery('#nature_box').hide();
 });
-
-//keys
-
-//consumer
-//dPDkJA7iy5mKFDswMGvdDaEwT02CD94E38D9rtRF
-
-//consumer secret
-//0VbZUwIbH11kevTmDvvpa3eGzHTO3j2XVxfRBEQh
-
-//javascript sdk
-//f21465255bada4113e81e54fee25e68f2c287d4f
