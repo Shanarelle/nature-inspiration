@@ -1,4 +1,5 @@
 === Nature Inspiration ===
+
 Contributors: shanarelle
 Tags: inspiration, pictures
 Requires at least: 4.2
@@ -11,6 +12,7 @@ Place an inspire button in your sidebar
 
 
 == Description ==
+
 A WordPress widget that accepts a set of image preferences and a 500px api key.
 Will show up as a title and a button in your sidebar.
 When someone clicks the button it will search 500px for an image matching your preferences and
